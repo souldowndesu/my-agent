@@ -1,5 +1,5 @@
 from pyaudio import PyAudio
-import pyaudio,httpx,re
+import pyaudio,httpx,re,dotenv
 import asyncio
 from connnet_logic import sse_event_iter
 
@@ -45,7 +45,7 @@ class AudioPlayer:
         self.stream.close()
         self.p.terminate()
 
-async def init_genie_async(chara_name, onnx_dir, ref_audio_pth, ref_text, lang="zh", base_url=None):
+def init_genie_async(chara_name, onnx_dir, ref_audio_pth, ref_text, lang="zh", base_url=None):
     base_url =base_url or "http://127.0.0.1:8000"
         
     load_payload = {
@@ -61,12 +61,12 @@ async def init_genie_async(chara_name, onnx_dir, ref_audio_pth, ref_text, lang="
     }
 
     #使用 httpx 进行异步网络请求
-    async with httpx.AsyncClient() as client:
-        resp1 = await client.post(f"{base_url}/load_character", json=load_payload)
+    with httpx.Client(timeout=None) as client:
+        resp1 = client.post(f"{base_url}/load_character", json=load_payload)
         resp1.raise_for_status()
         print("模型加载完毕")
         
-        resp2 = await client.post(f"{base_url}/set_reference_audio", json=ref_payload)
+        resp2 = client.post(f"{base_url}/set_reference_audio", json=ref_payload)
         resp2.raise_for_status()
         print("参考加载完毕")
         
@@ -168,9 +168,9 @@ async def main():
     onnx_path = r"D:\Data\VS_code\AI-workplace\my-agent\Genie\CharacterModels\v2ProPlus\thirtyseven\tts_models"
     ref_audio_path = r"D:\Data\VS_code\AI-workplace\my-agent\Genie\CharacterModels\v2ProPlus\thirtyseven\prompt_wav\En_play_hero3066_fightingvoc_19.wav"
     ref_text = "And now, I belong to this set."
+    init_genie_async(chara_name="37",onnx_dir=onnx_path,ref_audio_pth=ref_audio_path,ref_text=ref_text,lang="en")
     
     event_iter = sse_event_iter()   #会保持挂起,不会中断,因为总有可能会有新的数据到来
-    await init_genie_async(chara_name="37",onnx_dir=onnx_path,ref_audio_pth=ref_audio_path,ref_text=ref_text,lang="en")
     player = AudioPlayer()
     tts_worker = GenieWorker(player)
     await tts_worker.start()

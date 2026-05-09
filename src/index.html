@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 对话终端</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --chat-bg: #ffffff;
+            --user-msg: #007bff;
+            --bot-msg: #e9ecef;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            background: var(--chat-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: #333;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* 保留后端的换行符 */
+        }
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--user-msg);
+            color: var(--text-light);
+            border-bottom-right-radius: 4px;
+        }
+        .message.bot {
+            align-self: flex-start;
+            background-color: var(--bot-msg);
+            color: var(--text-dark);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            background: #fafafa;
+        }
+        #userInput {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+        }
+        #sendBtn {
+            background-color: var(--user-msg);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-left: 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #sendBtn:hover {
+            background-color: #0056b3;
+        }
+        #sendBtn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">Agent 交互终端 (流式响应)</div>
+    <div class="chat-messages" id="chatMessages">
+        </div>
+    <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="输入你想说的话..." autocomplete="off">
+        <button id="sendBtn">发送</button>
+    </div>
+</div>
+
+<script>
+    const baseUrl = "http://127.0.0.1:8001";
+    const chatMessages = document.getElementById("chatMessages");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    
+    let currentBotMessageEl = null; // 用于追踪当前正在输出的 AI 气泡
+
+    // 1. 初始化 SSE 连接，监听广播中心
+    function initSSE() {
+        const eventSource = new EventSource(`${baseUrl}/stream`);
+
+        eventSource.onmessage = function(event) {
+            try {
+                // 解析你后端发出的 json.dumps(message)
+                const data = JSON.parse(event.data);
+                
+                if (data.event === "start") {
+                    // 模型开始生成，创建一个新的空白气泡
+                    currentBotMessageEl = createMessageBubble("", "bot");
+                } 
+                else if (data.event === "content") {
+                    // 模型吐字，追加到当前气泡
+                    if (currentBotMessageEl) {
+                        currentBotMessageEl.textContent += data.data;
+                        scrollToBottom();
+                    }
+                } 
+                else if (data.event === "end") {
+                    // 生成结束，重置追踪器，恢复按钮状态
+                    currentBotMessageEl = null;
+                    sendBtn.disabled = false;
+                }
+                else if (data.event === "error") {
+                    createMessageBubble(`[系统错误]: ${data.error_msg}`, "bot");
+                    currentBotMessageEl = null;
+                    sendBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error("解析流数据失败:", err, event.data);
+            }
+        };
+
+        eventSource.onerror = function() {
+            console.error("SSE 连接断开，尝试重连...");
+            // EventSource 会自动尝试重连，这里无需手动重新实例化
+        };
+    }
+
+    // 2. 发送消息到后端
+    async function sendMessage() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        // UI 状态更新：显示用户输入，清空输入框，禁用发送按钮
+        createMessageBubble(text, "user");
+        userInput.value = "";
+        sendBtn.disabled = true;
+
+        try {
+            // 根据你的 FastAPI 定义：@app.post("/str-input") async def generate(user_input:str)
+            // 默认情况下单一的 str 参数会被 FastAPI 视作 Query Parameters
+            const url = `${baseUrl}/str-input?user_input=${encodeURIComponent(text)}`;
+            const response = await fetch(url, {
+                method: "POST"
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+            // 发送成功后，不需要在这里处理返回值，因为返回内容会通过上面的 SSE 接收
+        } catch (error) {
+            createMessageBubble(`[网络错误]: 无法发送消息`, "bot");
+            sendBtn.disabled = false;
+        }
+    }
+
+    // --- 辅助工具函数 ---
+
+    // 创建并插入消息气泡
+    function createMessageBubble(text, sender) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message ${sender}`;
+        msgDiv.textContent = text;
+        chatMessages.appendChild(msgDiv);
+        scrollToBottom();
+        return msgDiv;
+    }
+
+    // 自动滚动到底部
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // --- 绑定事件监听 ---
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", function(e) {
+        if (e.key === "Enter") sendMessage();
+    });
+
+    // 启动监听
+    initSSE();
+</script>
+
+</body>
+</html>

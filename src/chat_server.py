@@ -1,6 +1,7 @@
 import asyncio,uvicorn,fastapi
 from fastapi import FastAPI,Request
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware #允许多端口
 import json,uuid
 from chat_logic import AsyncLLM
 import dotenv
@@ -26,6 +27,13 @@ class StreamBroadcaster:
 
 broadcaster = StreamBroadcaster()
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 允许所有域名跨域（开发时最方便）
+    allow_credentials=True,
+    allow_methods=["*"],  # 允许所有方法 (GET, POST 等)
+    allow_headers=["*"],  # 允许所有请求头
+)
 llm = AsyncLLM()
    
 async def llm_worker(user_input:str,task_id:id):
@@ -55,7 +63,7 @@ async def llm_worker(user_input:str,task_id:id):
 @app.post("/str-input") #需要将输入传输到该站点
 async def generate(user_input:str): 
     task_id = str(uuid.uuid4())
-    asyncio.create_task(llm_worker(user_input,task_id,llm))
+    asyncio.create_task(llm_worker(user_input,task_id))
     return {"status": "started", "task_id": task_id, "message": "生成已触发并开始广播"}
 
 @app.get("/stream")
@@ -68,9 +76,9 @@ async def stream_endpoint(request:Request):
                 if await request.is_disconnected(): #只有主动断连,才会停止订阅
                     break
                 message = await queue.get()
-                yield f"data:{json.dumps(message,ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps(message,ensure_ascii=False)}\n\n"
         finally:
-            broadcaster.unsubscribe(queue)
+            await broadcaster.unsubscribe(queue)
     
     return StreamingResponse(event_generator(),media_type="text/event-stream")  #会不断返回实例化的event_generator,即对应得迭代器        
         

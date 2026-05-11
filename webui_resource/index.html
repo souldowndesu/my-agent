@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Chat UI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <button id="new-chat-btn" class="primary-btn">+ 新建对话</button>
+            <div class="chat-list-container">
+                <ul id="chat-list">
+                    </ul>
+            </div>
+        </aside>
+
+        <main class="chat-area">
+            <div id="chat-header" class="chat-header">
+                <h2 id="current-session-title">当前无选择的对话</h2>
+            </div>
+            
+            <div id="messages-container" class="messages-container">
+                </div>
+
+            <div class="input-area">
+                <input type="text" id="message-input" placeholder="输入你的问题..." disabled>
+                <button id="send-btn" disabled>发送</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

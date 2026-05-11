@@ -1,0 +1,9 @@
+uvicorn
+fastapi
+python-dotenv
+openai
+aiofiles
+httpx
+genie_tts
+huggingface_hub
+pyaudio

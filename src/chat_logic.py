@@ -1,27 +1,47 @@
 from openai import AsyncOpenAI
 import dotenv,os,aiofiles,json,asyncio,inspect
 from typing import List,Dict,Any,Callable
+import importlib.util
 
 dotenv.load_dotenv()
 
 class ToolRegistry:
     def __init__(self):
-        self._tool_schemas: List[Dict] = []
-        self._tool_callables = Dict[str,Callable] = {}
-    def register(self,name:str,description:str,parameters:dict):
-        def decorator(func: Callable):  #将函数包装为openai调用标准形式
-            schema = {
-                "type":"function",
-                "function":{
-                    "name":name,
-                    "description":description,
-                    "parameters":parameters
-                }
-            }
-            self._tool_schemas.append(schema)
-            self._tool_callables[name] = func
-            return func
-        return decorator    #整体输出,用于注册
+        self._tool_schemas:List[Dict] = []
+        self._tool_callables:Dict[str,Callable] = {}
+        
+    def register(self, tools_path: str):    #将目录内所有符合要求的tools进行注册
+        if not os.path.exists(tools_path):
+            print(f"[Registry] 未查询到目录: {tools_path}")
+            return
+            
+        for filename in os.listdir(tools_path):
+            if filename.endswith(".py") and not filename.startswith("__"):  #找到所有.py并去除隐藏文件
+                module_name = filename[:-3]
+                file_path = os.path.join(tools_path,filename)
+                
+                try:
+                    spec = importlib.util.spec_from_file_location(module_name,file_path) #动态加载模块
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+
+                    if hasattr(module,"TOOL_SCHEMA") and hasattr(module,"execute"):     #有明确格式要求，要求命名"TOOL_SCHEMA""execute"
+                        schema = getattr(module,"TOOL_SCHEMA")
+                        func = getattr(module,"execute")
+                        name = schema.get("function",{}).get("name")
+
+                        if not name:
+                            print(f"[Registry Error] {filename} 的 TOOL_SCHEMA 缺少 function.name 字段，跳过。")
+                            continue
+                        # 集中装配入库
+                        self._tool_schemas.append(schema)
+                        self._tool_callables[name] = func
+                        print(f"[System] 成功扫描并装配工具: {name} (来自 {filename})", flush=True)
+                    else:
+                        print(f"[System Warning] {filename} 缺失 TOOL_SCHEMA 或 execute，不符合协议，已跳过。", flush=True)
+                except Exception as e:  
+                    print(f"[Registry Exception] 动态加载模块 {filename} 时发生崩溃: {e}", flush=True)
+                    continue
     
     def get_schema(self)->List[Dict]:
         return self._tool_schemas if self._tool_schemas else None
@@ -60,7 +80,7 @@ class AsyncLLM:
                 model=self.model,
                 messages=self.messages,
                 stream=True,
-                tools=self.tools if self.tools else None
+                tools=self.registry.get_schema() if self.registry else None
             )
         
             full_reply = ""

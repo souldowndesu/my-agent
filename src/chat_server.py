@@ -3,6 +3,7 @@ from fastapi import FastAPI,Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware #允许多端口
 from contextlib import asynccontextmanager
+from registry import main_registry
 
 import json,uuid
 from chat_logic import AsyncLLM
@@ -16,7 +17,7 @@ class SessionManager:
         self.timeout = timeout
     async def get_asyncllm(self,session_id:str)->AsyncLLM:
         if session_id not in self.active_sessions:
-            async_llm = AsyncLLM()
+            async_llm = AsyncLLM(registry=main_registry)
             await async_llm.load_history(session_id) #首次建立连接时读取本地 json
             self.active_sessions[session_id] = {
                 "llm":async_llm,

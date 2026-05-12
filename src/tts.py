@@ -46,7 +46,7 @@ class AudioPlayer:
         self.p.terminate()
 
 def init_genie_async(chara_name, onnx_dir, ref_audio_pth, ref_text, lang="zh", base_url=None):
-    base_url =base_url or "http://127.0.0.1:8000"
+    base_url =base_url or "http://127.0.0.1:8002"
         
     load_payload = {
         "character_name":chara_name,  
@@ -75,7 +75,7 @@ class GenieWorker:
         self.text_queue = asyncio.Queue()  #使用队列缓存,防止阻塞text内容的输出
         self.audio_queue = asyncio.Queue()  #防止播放阻塞生成
         self.player = player
-        self.base_url = base_url or "http://127.0.0.1:8000"
+        self.base_url = base_url or "http://127.0.0.1:8002"
         
         #维持一个长连接客户端,获取生成的音频
         self.client = httpx.AsyncClient(timeout=None)

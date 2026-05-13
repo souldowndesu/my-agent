@@ -2,8 +2,11 @@ from openai import AsyncOpenAI
 import dotenv,os,aiofiles,json,asyncio,inspect
 from typing import List,Dict,Any,Callable
 import importlib.util
+import logging
 
 dotenv.load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class ToolRegistry:
     def __init__(self):
@@ -12,7 +15,7 @@ class ToolRegistry:
         
     def register(self, tools_path: str):    #将目录内所有符合要求的tools进行注册
         if not os.path.exists(tools_path):
-            print(f"[Registry] 未查询到目录: {tools_path}")
+            logger.warning(f"未查询到目录: {tools_path}")
             return
             
         for filename in os.listdir(tools_path):
@@ -31,16 +34,16 @@ class ToolRegistry:
                         name = schema.get("function",{}).get("name")
 
                         if not name:
-                            print(f"[Registry Error] {filename} 的 TOOL_SCHEMA 缺少 function.name 字段，跳过。")
+                            logger.error(f"{filename} 的 TOOL_SCHEMA 缺少 function.name 字段，跳过。")
                             continue
                         # 集中装配入库
                         self._tool_schemas.append(schema)
                         self._tool_callables[name] = func
-                        print(f"[System] 成功扫描并装配工具: {name} (来自 {filename})", flush=True)
+                        logger.info(f"成功扫描并装配工具: {name} (来自 {filename})")
                     else:
-                        print(f"[System Warning] {filename} 缺失 TOOL_SCHEMA 或 execute，不符合协议，已跳过。", flush=True)
+                        logger.warning(f"{filename} 缺失 TOOL_SCHEMA 或 execute，不符合协议，已跳过。")
                 except Exception as e:  
-                    print(f"[Registry Exception] 动态加载模块 {filename} 时发生崩溃: {e}", flush=True)
+                    logger.exception(f"动态加载模块 {filename} 时发生崩溃: {e}")
                     continue
     
     def get_schema(self)->List[Dict]:
@@ -65,7 +68,7 @@ class AsyncLLM:
         
         self.history_dir = "history"
         os.makedirs(self.history_dir,exist_ok=True)
-        self.messages = [{"role":"system","content":"You are a assistant,you should reply in english,and should not use emoji or special icons/characters.Use tools when necessary."}]
+        self.messages = [{"role":"system","content":"你是一个助理，帮助用户解决基本的问题，请不要使用特殊字符或表情符，必要的时候可以调用工具"}]
         
         self.registry = registry    #注册的tools  
     
@@ -98,7 +101,6 @@ class AsyncLLM:
                 if delta.content:
                     word = delta.content
                     full_reply += word
-                    print(word, end="", flush=True)
                     yield {"type":"content","data":word}
                 
                 if delta.tool_calls: #出现了工具调用的请求
@@ -110,7 +112,7 @@ class AsyncLLM:
                                 "name":tc_delta.function.name,
                                 "args":""
                             }
-                            print(f"\n\n[System] Model is calling tool: {tc_delta.function.name} -> ", end="", flush=True)
+                            logger.info(f"Model is calling tool: {tc_delta.function.name}")
                             yield {"type":"tool_start","name":tool_calls_buffer[index]["name"]}  #只在第一次出现该工具时输出
                         if tc_delta.function.arguments:
                             tool_calls_buffer[index]["args"] += tc_delta.function.arguments #逐渐拼接tool_call的内容
@@ -144,17 +146,22 @@ class AsyncLLM:
                     try:
                         args = json.loads(args_str) if args_str else {} #这里有一个防御性措施，防止非法json，也许可以调用修复模型对其进行更改
                         result_data = await self.registry.execute(func_name,args)
-                        result_str = str(result_data)
+                        # 对 dict/list 结果使用格式化 JSON，便于前端在终端面板中展示
+                        if isinstance(result_data, (dict, list)):
+                            result_str = json.dumps(result_data,ensure_ascii=False,indent=2)
+                        else:
+                            result_str = str(result_data)
                     except json.JSONDecodeError:
                         result_str = "Error: Invalid JSON arguments provided."
                         executed_well = False
                     except Exception as e:
                         result_str = f"Error executing {func_name} :{str(e)}"   #将结果返回模型
                         executed_well = False
-                        
-                    print(f"[Tool Result] {result_str}", flush=True)    
+                    
+                    clean_log_str = result_str.replace("\n", "\\n").replace("\r", "")
+                    logger.info(f"Tool [{func_name}] Result: {clean_log_str[:150]}{'...(truncated)' if len(clean_log_str) > 150 else ''}")
 
-                    yield {"type":"tool_result","name": func_name,"result_status":executed_well}
+                    yield {"type":"tool_result","name":func_name,"result_status":executed_well,"result_data":result_str,"tool_args":args_str}   #一个比较完整的输出
                     
                     self.messages.append({
                         "role":"tool",
@@ -178,7 +185,7 @@ class AsyncLLM:
                     messages = json.loads(content)
                     self.messages = messages
                 except json.JSONDecodeError:
-                    print(f"{session_id}.json无法正常解码")
+                    logger.error(f"{session_id}.json 无法正常解码")
                     
     async def  save_history(self,session_id:str,messages:list):
         filepath = os.path.join(self.history_dir, f"{session_id}.json")

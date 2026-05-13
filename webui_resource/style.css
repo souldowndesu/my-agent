@@ -158,3 +158,79 @@ body {
 #send-btn:hover:not(:disabled) {
     background-color: #0056b3;
 }
+
+/* 工具调用气泡专属样式 */
+.message-bubble.tool {
+    align-self: center;
+    background-color: #f8f9fa;
+    color: #495057;
+    font-size: 14px;
+    padding: 10px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 12px;
+    max-width: 85%;
+    margin: 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    white-space: normal;
+}
+
+/* 折叠面板无边框、鼠标手型 */
+.message-bubble.tool details {
+    cursor: pointer;
+    outline: none;
+}
+
+/* 标题栏（执行完毕 ✅ 等字样） */
+.message-bubble.tool summary {
+    font-weight: 600;
+    outline: none;
+    -webkit-user-select: none;
+    user-select: none;
+    list-style: none; /* 隐藏默认三角符号 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 自定义展开箭头 */
+.message-bubble.tool summary::before {
+    content: "▶";
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+.message-bubble.tool details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* 区域标签 */
+.tool-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 仿终端代码输出块 */
+.tool-output {
+    margin: 6px 0 0 0;
+    padding: 12px;
+    background-color: #1e1e1e; /* 经典代码黑 */
+    color: #d4d4d4;            /* 代码灰白 */
+    border-radius: 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    white-space: pre-wrap;     /* 允许长文本换行 */
+    word-break: break-word;
+    max-height: 400px;         /* 限制最大高度，防止霸屏 */
+    overflow-y: auto;          /* 内容过多时内部滚动 */
+    text-align: left;
+    cursor: text;              /* 允许光标选中复制内容 */
+}
+
+/* 输入参数块：比输出块稍浅以示区分 */
+.tool-output.tool-input {
+    background-color: #2d2d2d;
+}

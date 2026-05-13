@@ -12,6 +12,7 @@ const currentSessionTitle = document.getElementById('current-session-title');
 let currentSessionId = null;
 let currentEventSource = null; // 用于管理和断开 SSE 连接
 let activeAssistantMessageBubble = null; // 当前正在接收数据的气泡
+let activeToolBubbles = {}; // 跟踪当前正在执行的工具气泡
 
 // 前端本地存储（用于在不同会话间切换时恢复 UI 显示）
 let localSessionsData = JSON.parse(localStorage.getItem('chatSessions')) || {};
@@ -80,7 +81,7 @@ function switchSession(sessionId) {
     messagesContainer.innerHTML = '';
     const history = localSessionsData[sessionId] || [];
     history.forEach(msg => {
-        appendMessageBubble(msg.role, msg.content);
+        appendMessageBubble(msg.role, msg.content, msg.isHtml);
     });
     
     renderChatList();
@@ -122,6 +123,43 @@ function handleServerEvent(payload) {
             }
             break;
             
+        case 'tool_status':
+            if (payload.status === 'start') {
+                // 工具开始：生成一个专用样式的工具气泡
+                const toolBubble = appendMessageBubble('tool', `⚙️ 正在调用工具: ${payload.name} ...`);
+                activeToolBubbles[payload.name] = toolBubble;
+            } else if (payload.status === 'result') {
+                // 工具结束：构建可折叠的终端面板
+                const toolBubble = activeToolBubbles[payload.name];
+                if (toolBubble) {
+                    const statusIcon = payload.executed_well ? '✅' : '❌';
+                    
+                    const escHtml = (s) => String(s)
+                        .replace(/&/g, "&" + "amp;")
+                        .replace(/</g, "&" + "lt;")
+                        .replace(/>/g, "&" + "gt;");
+                    
+                    const escArgs = escHtml(payload.tool_args || "{}");
+                    const escOutput = escHtml(payload.result_data || "无返回结果");
+                                        
+                    const htmlContent = [
+                        '<details open>',
+                        '<summary>⚙️ 工具 [', escHtml(payload.name), '] 执行完毕 ', statusIcon, '</summary>',
+                        '<div class="tool-section-label">📥 输入参数</div>',
+                        '<pre class="tool-output tool-input">', escArgs, '</pre>',
+                        '<div class="tool-section-label">📤 输出结果</div>',
+                        '<pre class="tool-output">', escOutput, '</pre>',
+                        '</details>'
+                    ].join('');
+                    
+                    toolBubble.innerHTML = htmlContent;
+                    saveMessageToLocal(currentSessionId, 'tool', htmlContent, true);
+                    delete activeToolBubbles[payload.name];
+                    scrollToBottom();
+                }
+            }
+            break;
+
         case 'end':
             // 生成结束，将完整内容保存至前端本地缓存
             if (activeAssistantMessageBubble) {
@@ -169,11 +207,17 @@ async function sendMessage() {
 }
 
 // 辅助方法：添加消息气泡到界面
-function appendMessageBubble(role, content) {
+function appendMessageBubble(role, content, isHtml = false) {
     const div = document.createElement('div');
     div.classList.add('message-bubble');
     div.classList.add(role);
-    div.textContent = content;
+    
+    if (isHtml) {
+        div.innerHTML = content;
+    } else {
+        div.textContent = content;
+    }
+    
     messagesContainer.appendChild(div);
     scrollToBottom();
     return div;
@@ -185,11 +229,11 @@ function scrollToBottom() {
 }
 
 // 辅助方法：持久化同步逻辑
-function saveMessageToLocal(sessionId, role, content) {
+function saveMessageToLocal(sessionId, role, content, isHtml = false) {
     if (!localSessionsData[sessionId]) {
         localSessionsData[sessionId] = [];
     }
-    localSessionsData[sessionId].push({ role, content });
+    localSessionsData[sessionId].push({ role, content, isHtml });
     saveLocalData();
 }
 

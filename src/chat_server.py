@@ -8,8 +8,17 @@ from registry import main_registry
 import json,uuid
 from chat_logic import AsyncLLM
 import dotenv
+import logging
 
 dotenv.load_dotenv()
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
 
 class SessionManager:
     def __init__(self,timeout:int=1800):
@@ -36,7 +45,7 @@ class SessionManager:
             data = self.active_sessions.pop(session_id)
             # 断开连接时，将该会话内存全量写入json并使用pop清理内存
             await data["llm"].save_history(session_id,data["llm"].messages)
-            print(f"会话 {session_id} 的对话内容已保存。",flush=True)
+            logger.info(f"会话 {session_id} 的对话内容已保存。")
     async def save_all(self):
         for sid in list(self.active_sessions.keys()):
             await self.save_session(sid)
@@ -91,7 +100,7 @@ class ChatApp: #转发端口
 
         @self.app.get("/stream/{session_id}")
         async def stream_endpoint(request:Request,session_id:str):
-            print(f"[Server] {session_id} 正在建立 SSE 连接...", flush=True)
+            logger.info(f"{session_id} 正在建立 SSE 连接...")
             queue = await self.broadcaster.subscribe(session_id)   #每次接受请求，都会运行这个函数，订阅并开启event_generator
             await self.session_manager.get_asyncllm(session_id) #在input执行前就尝试加载好llm端口，降低延迟
             
@@ -99,22 +108,22 @@ class ChatApp: #转发端口
                 try:
                     while True:
                         if await request.is_disconnected(): #只有主动断连,才会停止订阅
-                            print(f"[Server] {session_id} 检测到正常断开(is_disconnected)",flush=True)
+                            logger.info(f"{session_id} 检测到正常断开(is_disconnected)")
                             break
                         message = await queue.get()
                         yield f"data: {json.dumps(message,ensure_ascii=False)}\n\n"
                 except asyncio.CancelledError:
-                    print(f"[Server] {session_id} 连接被强制中断 (CancelledError)",flush=True) # 检查点
+                    logger.warning(f"{session_id} 连接被强制中断 (CancelledError)")
                     raise
                 finally:
-                    print(f"[Server] {session_id} 进入 Finally，启动后台独立清理任务...",flush=True)
+                    logger.info(f"{session_id} 进入 Finally，启动后台独立清理任务...")
                     async def safe_cleanup():   #设置独立的异步任务，防止因为cancelled导致保存过程被跳过
                         try:
                             await self.broadcaster.unsubscribe(session_id,queue)
                             await self.session_manager.save_session(session_id)
-                            print(f"[Server] {session_id} 清理与保存任务彻底完成。",flush=True) # 检查点
+                            logger.info(f"{session_id} 清理与保存任务彻底完成。")
                         except Exception as e:
-                            print(f"[Server Error] {session_id} 清理时发生致命错误: {e}",flush=True)
+                            logger.error(f"{session_id} 清理时发生致命错误: {e}")
                     
                     asyncio.create_task(safe_cleanup())
                     
@@ -165,18 +174,21 @@ class ChatApp: #转发端口
                         "status":"start",
                         "name":res["name"]
                     })
-                elif event_type == "tool_result":     #需要考虑这个的必要性，也许直接返回执行结果就行了
+                elif event_type == "tool_result":
                     await self.broadcaster.broadcast(session_id, {
                         "event":"tool_status",
                         "status":"result",
                         "name":res["name"],
-                        "executed_well":res["result_status"]
+                        "executed_well":res["result_status"],
+                        "result_data": res.get("result_data", ""),
+                        "tool_args": res.get("tool_args", "")
                     })
                 
             await self.broadcaster.broadcast(session_id,{
                 "event":"end",
             })
         except Exception as e:
+            logger.exception(f"llm_worker 发生异常: {e}")
             await self.broadcaster.broadcast(session_id,{
                 "event": "error",
                 "error_msg": str(e)

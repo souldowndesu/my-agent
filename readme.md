@@ -177,3 +177,9 @@ async def execute(param1: str):
 ## 进一步阅读
 
 - [架构设计与开发指南](docs/architecture.md)
+
+## AI生成/需要验证的代码
+
+AI生成：
+- Tools 中的相关工具
+- webui_resource 中的所有代码

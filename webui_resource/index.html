@@ -22,7 +22,10 @@
         <main class="chat-area">
             <div id="chat-header" class="chat-header">
                 <h2 id="current-session-title">⭐ 主对话</h2>
-                <button id="compact-btn" class="compact-trigger-btn" title="压缩当前主会话的记忆">🧠 压缩记忆</button>
+                <div class="chat-header-actions">
+                    <button id="connection-toggle-btn" class="connection-toggle-btn" title="控制当前会话的SSE连接">🔗 已连接</button>
+                    <button id="compact-btn" class="compact-trigger-btn" title="压缩当前主会话的记忆">🧠 压缩记忆</button>
+                </div>
             </div>
             
             <div id="compact-panel" class="compact-panel">
@@ -48,6 +51,17 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
+    <!-- JS 模块（按依赖顺序加载） -->
+    <script src="js/config.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/message-bubble.js"></script>
+    <script src="js/chat-list.js"></script>
+    <script src="js/session-switch.js"></script>
+    <script src="js/sse-client.js"></script>
+    <script src="js/message-send.js"></script>
+    <script src="js/compact.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

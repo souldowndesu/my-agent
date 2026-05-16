@@ -1,3 +1,89 @@
+/* ============================================
+   1. CSS 变量 & 全局重置
+   ============================================ */
+:root {
+    /* 页面背景 */
+    --color-bg-page: #f4f7f6;
+    --color-bg-chat: #fff;
+
+    /* 侧边栏 */
+    --color-sidebar-bg: #2c3e50;
+    --color-sidebar-item: #34495e;
+    --color-sidebar-active: #3b5998;
+    --color-sidebar-text: #fff;
+
+    /* 主色调（user气泡 / 发送按钮 / 焦点） */
+    --color-primary: #007bff;
+    --color-primary-hover: #0056b3;
+    --color-primary-disabled: #b0c4de;
+
+    /* 功能按钮色 */
+    --color-success: #27ae60;
+    --color-success-hover: #2ecc71;
+    --color-warning: #e67e22;
+    --color-warning-hover: #f39c12;
+    --color-purple: #8e44ad;
+    --color-purple-hover: #a569bd;
+    --color-disabled: #7f8c8d;
+
+    /* assistant 气泡 */
+    --color-assistant-bg: #e9ecef;
+    --color-assistant-text: #333;
+    --color-user-text: #fff;
+
+    /* 时间戳 */
+    --color-timestamp: #6c757d;
+
+    /* tool 气泡 */
+    --color-tool-bg: #f8f7ff;
+    --color-tool-border: #e6e1f5;
+    --color-tool-hover-border: #c9bcf5;
+    --color-tool-summary: #4a3f9a;
+    --color-tool-arrow: #6c5ce7;
+
+    /* 终端输出 */
+    --color-terminal-bg: #1e2630;
+    --color-terminal-text: #c8d6e5;
+    --color-terminal-input-bg: #252f3d;
+    --color-terminal-input-border: #576574;
+
+    /* 边框与分割线 */
+    --color-border-light: #e0e0e0;
+    --color-header-bg: #fafafa;
+
+    /* 输入框 */
+    --color-input-focus-shadow: rgba(0, 123, 255, 0.15);
+
+    /* 压缩面板 */
+    --color-compact-bg: #fdf2f8;
+    --color-compact-header: #6c3483;
+    --color-compact-border: #8e44ad;
+
+    /* 连接状态按钮 */
+    --color-connected-bg: #e8f5e9;
+    --color-connected-text: #2e7d32;
+    --color-connected-border: #a5d6a7;
+    --color-disconnected-bg: #fbe9e7;
+    --color-disconnected-text: #c62828;
+    --color-disconnected-border: #ef9a9a;
+
+    /* 阴影 */
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --shadow-tool: 0 1px 3px rgba(139, 92, 246, 0.08);
+    --shadow-tool-hover: 0 2px 10px rgba(139, 92, 246, 0.15);
+
+    /* 圆角 */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-input: 16px;
+
+    /* 过渡 */
+    --transition-fast: 0.2s;
+    --transition-normal: 0.3s;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -6,30 +92,36 @@
 }
 
 body {
-    background-color: #f4f7f6;
+    background-color: var(--color-bg-page);
     height: 100vh;
     display: flex;
     overflow: hidden;
 }
 
+/* ============================================
+   2. 页面布局
+   ============================================ */
 .app-container {
     display: flex;
     width: 100%;
     height: 100%;
 }
 
-/* 侧边栏样式 */
+/* ============================================
+   3. 侧边栏
+   ============================================ */
 .sidebar {
     width: 260px;
     min-width: 260px;
     max-width: 260px;
-    background-color: #2c3e50;
-    color: #fff;
+    background-color: var(--color-sidebar-bg);
+    color: var(--color-sidebar-text);
     display: flex;
     flex-direction: column;
     padding: 15px;
 }
 
+/* --- 侧边栏操作按钮 --- */
 .sidebar-actions {
     display: flex;
     flex-direction: column;
@@ -39,45 +131,46 @@ body {
 }
 
 .primary-btn {
-    background-color: #27ae60;
+    background-color: var(--color-success);
     color: white;
     border: none;
     padding: 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 14px;
     font-weight: bold;
-    transition: background 0.3s;
+    transition: background var(--transition-normal);
     width: 100%;
 }
 
 .primary-btn:hover {
-    background-color: #2ecc71;
+    background-color: var(--color-success-hover);
 }
 
 .secondary-btn {
-    background-color: #e67e22;
+    background-color: var(--color-warning);
     color: white;
     border: none;
     padding: 10px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
     font-weight: bold;
-    transition: background 0.3s;
+    transition: background var(--transition-normal);
     width: 100%;
 }
 
 .secondary-btn:hover:not(:disabled) {
-    background-color: #f39c12;
+    background-color: var(--color-warning-hover);
 }
 
 .secondary-btn:disabled {
-    background-color: #7f8c8d;
+    background-color: var(--color-disabled);
     cursor: not-allowed;
     opacity: 0.6;
 }
 
+/* --- 会话列表 --- */
 .chat-list-container {
     flex: 1;
     overflow-y: auto;
@@ -89,35 +182,50 @@ body {
 
 #chat-list li {
     padding: 12px;
-    background-color: #34495e;
+    background-color: var(--color-sidebar-item);
     margin-bottom: 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 14px;
-    transition: background 0.2s;
+    transition: background var(--transition-fast);
     word-break: break-all;
 }
 
-#chat-list li:hover, #chat-list li.active {
-    background-color: #3b5998;
+#chat-list li:hover,
+#chat-list li.active {
+    background-color: var(--color-sidebar-active);
 }
 
-/* 右侧聊天主区域 */
+/* ============================================
+   4. 聊天主区域
+   ============================================ */
 .chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #fff;
+    background-color: var(--color-bg-chat);
     overflow: hidden;
 }
 
 .chat-header {
     padding: 20px;
-    border-bottom: 1px solid #e0e0e0;
-    background-color: #fafafa;
-    color: #333;
+    border-bottom: 1px solid var(--color-border-light);
+    background-color: var(--color-header-bg);
+    color: var(--color-assistant-text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
+.chat-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ============================================
+   5. 消息气泡
+   ============================================ */
 .messages-container {
     flex: 1;
     padding: 20px;
@@ -130,16 +238,16 @@ body {
 .message-bubble {
     max-width: 70%;
     padding: 12px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     line-height: 1.5;
     font-size: 15px;
     white-space: pre-wrap;
 }
 
-/* 时间戳样式 */
+/* --- 时间戳 --- */
 .msg-time {
     font-size: 11px;
-    color: #6c757d;
+    color: var(--color-timestamp);
     margin-bottom: 6px;
     -webkit-user-select: none;
     user-select: none;
@@ -150,21 +258,114 @@ body {
     color: rgba(255, 255, 255, 0.7);
 }
 
+/* --- user 气泡 --- */
 .message-bubble.user {
     align-self: flex-end;
-    background-color: #007bff;
-    color: #fff;
+    background-color: var(--color-primary);
+    color: var(--color-user-text);
     border-bottom-right-radius: 0;
 }
 
+/* --- assistant 气泡 --- */
 .message-bubble.assistant {
     align-self: flex-start;
-    background-color: #e9ecef;
-    color: #333;
+    background-color: var(--color-assistant-bg);
+    color: var(--color-assistant-text);
     border-bottom-left-radius: 0;
 }
 
-/* 输入区样式 —— 融入对话框风格 */
+/* ============================================
+   6. 工具调用气泡
+   ============================================ */
+.message-bubble.tool {
+    align-self: flex-start;
+    background-color: var(--color-tool-bg);
+    color: var(--color-assistant-text);
+    font-size: 13px;
+    padding: 8px 14px;
+    border: 1px solid var(--color-tool-border);
+    border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-sm);
+    max-width: 86%;
+    margin: 4px 0 4px 8px;
+    box-shadow: var(--shadow-tool);
+    white-space: normal;
+    transition: box-shadow var(--transition-fast) ease;
+}
+
+.message-bubble.tool:hover {
+    box-shadow: var(--shadow-tool-hover);
+    border-color: var(--color-tool-hover-border);
+}
+
+.message-bubble.tool details {
+    cursor: pointer;
+    outline: none;
+}
+
+.message-bubble.tool summary {
+    font-weight: 600;
+    outline: none;
+    -webkit-user-select: none;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-tool-summary);
+    font-size: 13px;
+}
+
+/* 自定义展开箭头 */
+.message-bubble.tool summary::before {
+    content: "▶";
+    font-size: 10px;
+    transition: transform var(--transition-fast);
+    color: var(--color-tool-arrow);
+    flex-shrink: 0;
+}
+
+.message-bubble.tool details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* tool 区域标签 */
+.tool-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    margin-top: 8px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* 终端输出块 */
+.tool-output {
+    margin: 4px 0 0 0;
+    padding: 10px 12px;
+    background-color: var(--color-terminal-bg);
+    color: var(--color-terminal-text);
+    border-radius: var(--radius-md);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    text-align: left;
+    cursor: text;
+    line-height: 1.45;
+}
+
+/* 输入参数变体 */
+.tool-output.tool-input {
+    background-color: var(--color-terminal-input-bg);
+    border-left: 2px solid var(--color-terminal-input-border);
+}
+
+/* ============================================
+   7. 输入区
+   ============================================ */
 .input-area {
     padding: 0 20px 16px 20px;
     border-top: none;
@@ -181,33 +382,34 @@ body {
     gap: 8px;
 }
 
-/* 连续对话提示区：在执行完成后显示在输入框上方 */
+/* 追问提示 */
 .follow-up-hint {
     font-size: 13px;
-    color: #6c757d;
+    color: var(--color-timestamp);
     text-align: center;
     min-height: 0;
     padding: 0;
     line-height: 1.6;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--transition-normal) ease;
 }
 
+/* 输入行 */
 .input-row {
     display: flex;
     gap: 10px;
     align-items: center;
-    background-color: #fff;
-    border: 2px solid #e0e0e0;
-    border-radius: 16px;
+    background-color: var(--color-bg-chat);
+    border: 2px solid var(--color-border-light);
+    border-radius: var(--radius-input);
     padding: 6px 6px 6px 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-card);
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .input-row:focus-within {
-    border-color: #007bff;
-    box-shadow: 0 4px 20px rgba(0, 123, 255, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 20px var(--color-input-focus-shadow);
 }
 
 #message-input {
@@ -218,7 +420,10 @@ body {
     font-size: 16px;
     outline: none;
     background: transparent;
-    color: #333;
+    color: var(--color-assistant-text);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 
 #message-input::placeholder {
@@ -230,37 +435,42 @@ body {
     cursor: not-allowed;
 }
 
-/* 隐藏浏览器原生清除按钮，避免触发意外行为 */
+/* 隐藏浏览器原生清除按钮 */
 #message-input::-webkit-search-cancel-button,
 #message-input::-webkit-search-decoration,
+#message-input::-webkit-search-results-decoration,
+#message-input::-webkit-search-results-button,
 #message-input::-webkit-clear-button,
-#message-input::-ms-clear {
-    display: none;
-    -webkit-appearance: none;
+#message-input::-webkit-inner-spin-button,
+#message-input::-ms-clear,
+#message-input::-ms-reveal {
+    display: none !important;
+    -webkit-appearance: none !important;
 }
 
+/* 发送按钮 */
 #send-btn {
     padding: 10px 22px;
-    background-color: #007bff;
+    background-color: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s, transform 0.15s;
+    transition: background var(--transition-fast), transform 0.15s;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
 #send-btn:disabled {
-    background-color: #b0c4de;
+    background-color: var(--color-primary-disabled);
     cursor: not-allowed;
     transform: none;
 }
 
 #send-btn:hover:not(:disabled) {
-    background-color: #0056b3;
+    background-color: var(--color-primary-hover);
     transform: scale(1.03);
 }
 
@@ -268,163 +478,126 @@ body {
     transform: scale(0.97);
 }
 
-/* 工具调用气泡 —— 内嵌于对话流，紧凑卡片风格 */
-.message-bubble.tool {
-    align-self: flex-start;
-    background-color: #f0f4ff;
-    color: #333;
-    font-size: 13px;
+/* ============================================
+   8. 连接状态按钮
+   ============================================ */
+.connection-toggle-btn {
     padding: 8px 14px;
-    border-left: 4px solid #6c5ce7;
-    border-radius: 0 8px 8px 0;
-    max-width: 88%;
-    margin: 4px 0 4px 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    white-space: normal;
-}
-
-/* 折叠面板无边框、鼠标手型 */
-.message-bubble.tool details {
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: 14px;
     cursor: pointer;
-    outline: none;
+    font-weight: 500;
+    transition: all var(--transition-fast) ease;
+    white-space: nowrap;
+    /* JS 动态覆盖以下三属性 */
+    background-color: var(--color-connected-bg);
+    color: var(--color-connected-text);
+    border: 1px solid var(--color-connected-border);
 }
 
-/* 标题栏 */
-.message-bubble.tool summary {
-    font-weight: 600;
-    outline: none;
-    -webkit-user-select: none;
-    user-select: none;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #4a3f9a;
-    font-size: 13px;
+/* 备用类名：JS 使用内联样式，CSS 类名作为 fallback */
+.connection-toggle-btn.connected {
+    background: var(--color-connected-bg);
+    color: var(--color-connected-text);
+    border: 1px solid var(--color-connected-border);
 }
 
-/* 自定义展开箭头 */
-.message-bubble.tool summary::before {
-    content: "▶";
-    font-size: 10px;
-    transition: transform 0.2s;
-    color: #6c5ce7;
-    flex-shrink: 0;
-}
-.message-bubble.tool details[open] summary::before {
-    transform: rotate(90deg);
+.connection-toggle-btn.connected:hover {
+    background: #c8e6c9;
+    border-color: #66bb6a;
 }
 
-/* 区域标签（更小更淡） */
-.tool-section-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: #888;
-    margin-top: 8px;
-    margin-bottom: 3px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+.connection-toggle-btn.disconnected {
+    background: var(--color-disconnected-bg);
+    color: var(--color-disconnected-text);
+    border: 1px solid var(--color-disconnected-border);
 }
 
-/* 仿终端代码输出块 */
-.tool-output {
-    margin: 4px 0 0 0;
-    padding: 10px 12px;
-    background-color: #1e2630;
-    color: #c8d6e5;
-    border-radius: 6px;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 12px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 300px;
-    overflow-y: auto;
-    text-align: left;
-    cursor: text;
-    line-height: 1.45;
+.connection-toggle-btn.disconnected:hover {
+    background: #ffcdd2;
+    border-color: #e57373;
 }
 
-/* 输入参数块：比输出块稍浅 */
-.tool-output.tool-input {
-    background-color: #252f3d;
-    border-left: 2px solid #576574;
-}
-
-/* ===== 压缩按钮 ===== */
-.chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-}
+/* ============================================
+   9. 压缩面板 & 压缩按钮
+   ============================================ */
 .compact-trigger-btn {
-    background-color: #8e44ad;
+    background-color: var(--color-purple);
     color: white;
     border: none;
     padding: 8px 18px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 14px;
     font-weight: bold;
-    transition: background 0.3s;
+    transition: background var(--transition-normal);
     white-space: nowrap;
 }
+
 .compact-trigger-btn:hover:not(:disabled) {
-    background-color: #a569bd;
+    background-color: var(--color-purple-hover);
 }
+
 .compact-trigger-btn:disabled {
-    background-color: #7f8c8d;
+    background-color: var(--color-disabled);
     cursor: not-allowed;
     opacity: 0.6;
 }
 
-/* ===== 压缩面板 ===== */
 .compact-panel {
     display: none;
-    background-color: #fdf2f8;
-    border-bottom: 3px solid #8e44ad;
+    background-color: var(--color-compact-bg);
+    border-bottom: 3px solid var(--color-compact-border);
     padding: 0;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease, padding 0.4s ease;
 }
+
 .compact-panel.open {
     display: block;
     max-height: 500px;
     padding: 12px 20px;
     overflow-y: auto;
 }
+
 .compact-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
     font-weight: 600;
-    color: #6c3483;
+    color: var(--color-compact-header);
 }
+
 .compact-status {
     font-size: 13px;
-    color: #e67e22;
+    color: var(--color-warning);
     font-weight: 600;
 }
+
 .compact-status.done {
-    color: #27ae60;
+    color: var(--color-success);
 }
+
 .compact-status.error {
     color: #e74c3c;
 }
+
 .compact-content {
     font-size: 14px;
     line-height: 1.7;
-    color: #333;
+    color: var(--color-assistant-text);
     white-space: pre-wrap;
     word-break: break-word;
     background: #fff;
     border: 1px solid #e8daef;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     padding: 14px;
     min-height: 40px;
 }
+
 .compact-content:empty::after {
     content: "压缩中，等待 AI 生成总结...";
     color: #999;

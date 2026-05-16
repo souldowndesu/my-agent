@@ -152,29 +152,69 @@ class ChatApp: #转发端口
             return {"status": "unknown_cmd"}
         
         @self.app.get("/get-history")
-        async def get_history(session_id: str, session_type: str = "main"):
-            """从 SQLite 读取指定会话的所有消息（用于前端同步）"""
+        async def get_history(session_id:str,session_type:str="main"):
+            #优先从活跃内存会话读取完整消息，否则降级查询 SQLite
             messages = []
-            async with aiosqlite.connect(MAIN_DB_PATH) as db:
-                async with db.execute(
-                    "SELECT message_data, created_at_str FROM main_messages WHERE session_id = ? AND session_type = ? ORDER BY id ASC",
-                    (session_id, session_type)
-                ) as cursor:
-                    rows = await cursor.fetchall()
-                    for row in rows:
-                        try:
-                            msg = json.loads(row[0])
-                            # 判断是否为 HTML 内容（tool 消息保存时标记为 isHtml）
-                            is_html = (msg.get("role") == "tool")
+            try:
+                key = f"{session_id}:{session_type}"
+                active = self.session_manager.active_sessions.get(key)
+                if active and hasattr(active.get("llm"), "messages"):
+                    # 从内存 LLM 实例直接读取完整消息列表（含 tool_calls / name 等完整字段）
+                    llm_messages = active["llm"].messages
+                    for msg in llm_messages:
+                        role = msg.get("role", "")
+                        if role == "system":
+                            continue  # 系统提示词不需要展示
+                        content = msg.get("content") or ""
+                        is_html = (role == "tool")
+                        messages.append({
+                            "role": role,
+                            "content": content,
+                            "isHtml": is_html,
+                            "tool_calls": msg.get("tool_calls"),
+                            "name": msg.get("name"),
+                            "tool_call_id": msg.get("tool_call_id"),
+                            "reasoning_content": msg.get("reasoning_content"),
+                            "time": ""  #内存数据无时间戳
+                        })
+                    logger.info(f"get-history 从内存返回 {len(messages)} 条消息 (session={session_id})")
+                    return {"status": "ok", "session_id": session_id, "messages": messages}
+
+                # 降级：从SQLite 读取
+                async with aiosqlite.connect(MAIN_DB_PATH) as db:
+                    await db.execute("PRAGMA journal_mode=WAL")
+                    async with db.execute(
+                        "SELECT message_data, created_at_str FROM main_messages WHERE session_id = ? AND session_type = ? ORDER BY id ASC",
+                        (session_id, session_type)
+                    ) as cursor:
+                        rows = await cursor.fetchall()
+                        for row in rows:
+                            raw_data = row[0]
+                            if not raw_data:
+                                logger.warning(f"跳过空消息记录 (session={session_id})")
+                                continue
+                            try:
+                                msg = json.loads(raw_data)
+                            except (json.JSONDecodeError, TypeError) as e:
+                                logger.warning(f"跳过损坏的消息记录: {str(raw_data)[:80]} - {e}")
+                                continue
+                            role = msg.get("role","")
+                            is_html = (role=="tool")
                             messages.append({
-                                "role": msg.get("role", ""),
-                                "content": msg.get("content", ""),
-                                "isHtml": is_html,
-                                "time": row[1]
+                                "role":role,
+                                "content":msg.get("content") or "",
+                                "isHtml":is_html,
+                                "tool_calls":msg.get("tool_calls"),
+                                "name":msg.get("name"),
+                                "tool_call_id":msg.get("tool_call_id"),
+                                "reasoning_content":msg.get("reasoning_content"),
+                                "time":row[1] or ""
                             })
-                        except json.JSONDecodeError:
-                            logger.warning(f"跳过损坏的消息记录: {row[0][:50]}")
-            return {"status": "ok", "session_id": session_id, "messages": messages}
+                logger.info(f"get-history 从 SQLite 返回 {len(messages)} 条消息 (session={session_id})")
+                return {"status":"ok","session_id":session_id,"messages":messages}
+            except Exception as e:
+                logger.error(f"get-history 失败 (session={session_id}, type={session_type}): {e}")
+                return {"status": "error", "session_id": session_id, "messages": [], "error": str(e)}
 
         @self.app.post("/str-input") #需要将输入传输到该站点
         async def generate(session_id:str,session_type:str,user_input:str): 

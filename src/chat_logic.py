@@ -236,6 +236,25 @@ class AsyncLLM:
             self._saved_index = len(self.messages)
             logger.info(f"加载 main 类型历史记录成功，共 {len(self.messages)} 条上下文明细。")
         
+        elif session_type == "temp":
+            # temp 会话直接加载自身历史（无压缩流程）
+            async with aiosqlite.connect(MAIN_DB_PATH) as db_main:
+                try:
+                    async with db_main.execute(
+                        "SELECT message_data, created_at FROM main_messages WHERE session_id = ? AND session_type = ? ORDER BY id ASC",(session_id, session_type)
+                    ) as cursor:
+                        rows = await cursor.fetchall()
+                        for row in rows:
+                            try:
+                                self.messages.append(json.loads(row[0]))
+                                self.timestamps.append(row[1])
+                            except json.JSONDecodeError:
+                                logger.error(f"Failed to decode message JSON for session {session_id}")
+                except aiosqlite.OperationalError:
+                    pass
+            self._saved_index = len(self.messages)
+            logger.info(f"加载 temp 类型历史记录成功，共 {len(self.messages)} 条上下文明细。")
+
         elif session_type == "compact":
             #使用压缩专用提示词，并加载main中未压缩的原始消息作为原材料
             self.messages = [{"role":"system","content":self.COMPACT_SYSTEM_PROMPT}]
@@ -274,7 +293,7 @@ class AsyncLLM:
         if not new_msgs:
             return  #没有新消息，不需要写入
         
-        if session_type == "main":
+        if session_type == "main" or session_type == "temp":
             async with aiosqlite.connect(MAIN_DB_PATH) as db:
                 for msg, ts in zip(new_msgs, new_ts):
                     formatted_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
